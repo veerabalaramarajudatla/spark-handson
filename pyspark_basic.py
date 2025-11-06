@@ -4,8 +4,8 @@ from pyspark.sql import SparkSession
 spark = SparkSession.builder \
     .appName("MySparkApp") \
     .getOrCreate()
-list = [1, 2, 3, 4, 5] # Sample List
-rdd = spark.sparkContext.parallelize(list) # We are assigning the list into RDD named rdd
+list1 = [1, 2, 3, 4, 5] # Sample List
+rdd = spark.sparkContext.parallelize(list1) # We are assigning the list into RDD named rdd
 rdd_squared = rdd.map(lambda x: x ** 2) # Transformation method - Map() and storing the output to the new RDD named rdd_squared
 result = rdd_squared.collect() # Action Method - collect()
 print("Squared Numbers:", result)
