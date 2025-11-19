@@ -9,6 +9,8 @@ from pyspark.sql import Row
 import json
 import io
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 # ------- Spark Session -------
 Spark = SparkSession.builder.appName("Data Retriving Session new").getOrCreate() #Spark Session
@@ -19,10 +21,10 @@ AWS_ACCESS_KEY = "####" #Access Key IAM
 AWS_SECRET_KEY = "####" #Secret Key IAM
 
 # ------- DynamoDB & S3 -------
-DDB_TABLES = ["####data"] #DynamoDB Tables
+DDB_TABLES = ["sampledata"] #DynamoDB Tables
 
 BUCKET_NAME = "####-datla"
-BRONZE = "bronze_layer/bronze.csv"
+BRONZE = "####/"
 
 
 # ------- Boto3 Session for Dynamo DB -------
@@ -82,14 +84,32 @@ s3 = boto3.client(
     aws_secret_access_key=AWS_SECRET_KEY,
     region_name=AWS_REGION
 )
+print("boto3 S3 session created.")
 
-csv_buffer = io.StringIO()
+# --------- Uploading the Data to S3 Bucket -------
+# csv_buffer = io.StringIO()
+# pdf = df.toPandas() # Convert to Pandas
+# pdf.to_csv(csv_buffer, index=False) # Convert to CSV
+# # Upload CSV
+# s3.put_object(
+#     Bucket=BUCKET_NAME,
+#     Key=BRONZE,
+#     Body=csv_buffer.getvalue()
+# )
+# print("CSV uploaded to S3 Bronze")
+
+# --------- Writing the Data to S3 Bucket -------
 pdf = df.toPandas() # Convert to Pandas
-pdf.to_csv(csv_buffer, index=False) # Convert to CSV
-# Upload CSV
-s3.put_object(
+table = pa.Table.from_pandas(pdf) # Convert to Arrow Table
+buf = io.BytesIO() # Create a buffer
+pq.write_table(table, buf) # Write to Parquet
+buf.seek(0) # Seek to the beginning of the buffer
+# Upload to BRONZE S3 Path using boto3
+directory = f"{BRONZE}{table_name}.parquet" #Path
+s3_client = session.client("s3")
+s3_client.put_object(
     Bucket=BUCKET_NAME,
-    Key=BRONZE,
-    Body=csv_buffer.getvalue()
+    Key=directory,
+    Body=buf.getvalue()
 )
-print("CSV uploaded to S3 Bronze Layer")
+print("Parquet Converted to S3")
